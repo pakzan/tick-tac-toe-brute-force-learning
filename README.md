@@ -1,2 +1,2 @@
-# tick-tac-toe--brute-force-learning
-A VB Tick Tac Toe Game that will let computer learns by looping throught all possible moves.
+# tick-tac-toe-machine-learning
+A VB Tick Tac Toe Game that use Minimax and Reinforcement Learning.
