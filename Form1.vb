@@ -7,10 +7,9 @@ Public Class Form1
 
     Dim box() As Integer = {0, 0, 0, 0, 0, 0, 0, 0, 0}
     Public Shared Turn As Integer
-    Dim statistics As New Dictionary(Of String, Short)
-    Dim stat_key As String
+    Dim statistics As New Dictionary(Of String, Single)
     Dim movement As String
-    Dim path As String = "c:\temp\MyTest.txt"
+    Dim path As String = "..\data.txt"
     Dim found As Boolean
     Dim deep As Short = 3
     Dim branch As Short = 3
@@ -65,7 +64,7 @@ Public Class Form1
     Public Sub ComputerTurn()
         Dim compLabel As Label
         Dim potential As Integer
-        Dim reward As Integer = 0
+        Dim reward As Single = 0
         found = False
 
         'check database to find similar record, follow the record with best result
@@ -73,19 +72,16 @@ Public Class Form1
         'reward: result of previous record
         'potential: movement of previous record
         For Each statistic In statistics
-            If Integer.Parse(statistic.Key(0)) = Turn And statistic.Key.Length - 1 > movement.Length And
-                statistic.Key.StartsWith(movement) And reward <= statistic.Value Then
-                stat_key = statistic.Key
+            If statistic.Key.Substring(0, statistic.Key.Length - 2).Equals(Turn & movement) And reward <= statistic.Value Then
                 reward = statistic.Value
                 potential = Integer.Parse(statistic.Key(movement.Length + 1))
                 found = True
             End If
         Next
 
-        'prevent the comp from following previous record
-        Dim follow_record As Integer = RND.Next(0, 10)
-        If Not found Or follow_record < 7 Then
-            stat_key = ""
+        'add greedy factor to encourage further exploration
+        Dim greedy As Integer = RND.Next(0, 10)
+        If Not found Or greedy < 7 Then
             potential = Minimax(box, branch, deep, False) + 1
         End If
 
@@ -94,15 +90,15 @@ Public Class Form1
         CheckWin()
 
         'Reinforcement Learning
-        'If Not CheckWin() Then
-        '    ComputerTurn1()
-        'End If
+        If Not CheckWin() Then
+            ''ComputerTurn1()
+        End If
     End Sub
 
     Public Sub ComputerTurn1()
         Dim compLabel As Label
         Dim potential As Integer
-        Dim reward As Integer = 0
+        Dim reward As Single = 0
         found = False
 
         'check database to find similar record, follow the record with best result
@@ -110,24 +106,22 @@ Public Class Form1
         'reward: result of previous record
         'potential: movement of previous record
         For Each statistic In statistics
-            If Integer.Parse(statistic.Key(0)) = Turn And statistic.Key.Length - 1 > movement.Length And
-                statistic.Key.StartsWith(movement) And reward <= statistic.Value Then
-                stat_key = statistic.Key
+            If statistic.Key.Substring(0, statistic.Key.Length - 2).Equals(((Turn + 1) Mod 2) & movement) And reward <= statistic.Value Then
                 reward = statistic.Value
                 potential = Integer.Parse(statistic.Key(movement.Length + 1))
                 found = True
             End If
         Next
 
-        'prevent the comp from following previous record
-        Dim follow_record As Integer = RND.Next(0, 10)
-        If Not found Or follow_record < 7 Then
-            stat_key = ""
+        'add greedy factor to encourage further exploration
+        Dim greedy As Integer = RND.Next(0, 10)
+        If Not found Or greedy < 7 Then
             potential = Minimax(box, branch, deep, True) + 1
         End If
 
         compLabel = Me.Controls("Label" & potential)
         compLabel.Text = "X"
+        CheckWin()
 
         'Reinforcement Learning
         If Not CheckWin() Then
@@ -235,7 +229,7 @@ Public Class Form1
 
     Private Function CheckWin() As Boolean
         'set reward for training computer
-        Dim reward As Short = GetReward(box)
+        Dim reward As Single = GetReward(box)
 
         If reward = 0 Then
             'continue playing
@@ -243,16 +237,27 @@ Public Class Form1
         End If
 
         'game ended, store record to database
-        If Not stat_key.Equals("") Then
-            'update database if record exist
-            statistics(stat_key) += reward
-        ElseIf statistics.ContainsKey(Turn & movement) Then
-            'update database if record exist
-            statistics(Turn & movement) += reward
-        Else
-            'otherwise add new record to database
-            statistics.Add(Turn & movement, reward)
+        'apply Q-learning
+        Dim newKey As String = Turn & movement
+        'make sure the last value is the value made by AI
+        If Not (newKey.Length + Turn) Mod 2 = 0 Then
+            newKey = newKey.Remove(newKey.Length - 1)
         End If
+
+        Dim learn_rate As Single = 0.9
+        While Not newKey.Length <= 1
+            If statistics.ContainsKey(newKey) Then
+                'update database if record exist
+                reward = (1 - learn_rate) * statistics(newKey) + learn_rate * reward
+                statistics(newKey) = reward
+            Else
+                'otherwise add new record to database
+                reward = learn_rate * reward
+                statistics.Add(newKey, reward)
+            End If
+            'add record for all of the moves made by AI
+            newKey = newKey.Remove(newKey.Length - 2)
+        End While
 
         'store database into file
         If statistics.Count > 0 Then
@@ -287,7 +292,6 @@ Public Class Form1
         Next
         box = {0, 0, 0, 0, 0, 0, 0, 0, 0}
         movement = ""
-        stat_key = ""
         statistics.Clear()
 
         'retrive previous playing records from database
@@ -304,7 +308,7 @@ Public Class Form1
         If Turn = 2 Then
             ComputerTurn()
         Else
-            'ComputerTurn1()
+            ''ComputerTurn1()
         End If
     End Sub
 

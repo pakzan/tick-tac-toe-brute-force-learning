@@ -6,16 +6,15 @@
 
     Private Sub ComputerFirst(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
         Form1.Visible = True
-        Form1.Reset()
         Form1.Turn = 2
-        Form1.ComputerTurn()
+        Form1.Reset()
         Me.Visible = False
     End Sub
 
     Private Sub PlayerFirst(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button2.Click
         Form1.Visible = True
-        Form1.Reset()
         Form1.Turn = 1
+        Form1.Reset()
         Me.Visible = False
     End Sub
 
